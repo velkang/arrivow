@@ -1,0 +1,25 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+node_modules/
+.pnpm-store/
+coverage/
+dist
+*.tsbuildinfo
+
+# Cloudflare
+.wrangler/
+
+# Planning docs and third-party material
+AGENTS.md
+IMPLEMENTATION_PLAN.md
+.claude
+
+# Agent skills (installed per machine)
+.agents
+.impeccable
+
+# Rust build output and testnet account keys written by the scripts
+target/
+accounts.*.json
