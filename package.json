@@ -1,18 +1,23 @@
 {
-  "name": "court",
+  "name": "gather",
   "private": true,
   "packageManager": "pnpm@11.1.0",
   "engines": {
     "node": ">=22.18.0"
   },
   "scripts": {
-    "check": "pnpm -r --if-present check",
+    "check": "pnpm types && pnpm -r --if-present check",
     "test": "pnpm -r --if-present test && cargo test --manifest-path contracts/Cargo.toml",
     "web:dev": "pnpm --dir web dev",
+    "service:dev": "wrangler dev -c web/wrangler.jsonc",
+    "db:local": "wrangler d1 migrations apply DB --local -c web/wrangler.jsonc",
+    "types": "wrangler types --strict-vars=false -c web/wrangler.jsonc web/worker-configuration.d.ts",
+    "contract:build": "cargo near build non-reproducible-wasm --manifest-path contracts/events/Cargo.toml --locked --out-dir contracts/target/near/events",
     "web:build": "pnpm --dir web build",
     "deploy:web": "pnpm web:build && wrangler deploy -c web/wrangler.jsonc"
   },
   "devDependencies": {
+    "near-api-js": "^7.4.0",
     "wrangler": "^4.151.0"
   }
 }

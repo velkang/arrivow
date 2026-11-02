@@ -1,10 +1,76 @@
 {
   "$schema": "../node_modules/wrangler/config-schema.json",
-  "name": "court-web",
-  "compatibility_date": "2026-10-01",
+  "name": "gather-events",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-26",
   "assets": {
     "directory": "dist",
-    "not_found_handling": "single-page-application",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/api/*"
+    ],
+    "not_found_handling": "single-page-application"
   },
-  "observability": { "enabled": false },
+  "vars": {
+    "NEAR_NETWORK": "testnet",
+    "NEAR_RPC": "https://test.rpc.fastnear.com",
+    "EVENT_CONTRACT": "emvy2mtz9.faintprint-funder-7k2q.testnet"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "gather-testnet",
+      "database_id": "e1f704cd-8cbd-4c7e-b5ef-dcdd65f2f267",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "RETENTION",
+        "class_name": "RetentionAlarm"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "retention-v1",
+      "new_sqlite_classes": [
+        "RetentionAlarm"
+      ]
+    }
+  ],
+  "observability": {
+    "enabled": true,
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.01
+    }
+  },
+  "env": {
+    "mainnet": {
+      "name": "gather-events-mainnet",
+      "vars": {
+        "NEAR_NETWORK": "mainnet",
+        "NEAR_RPC": "https://rpc.mainnet.near.org",
+        "EVENT_CONTRACT": ""
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "gather-mainnet",
+          "database_id": "00000000-0000-0000-0000-000000000000",
+          "migrations_dir": "migrations"
+        }
+      ],
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "RETENTION",
+            "class_name": "RetentionAlarm"
+          }
+        ]
+      }
+    }
+  }
 }

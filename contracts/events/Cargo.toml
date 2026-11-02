@@ -1,5 +1,5 @@
 [package]
-name = "market"
+name = "events"
 version = "0.1.0"
 edition = "2021"
 
@@ -11,4 +11,3 @@ near-sdk = { workspace = true }
 
 [dev-dependencies]
 near-sdk = { workspace = true, features = ["unit-testing"] }
-

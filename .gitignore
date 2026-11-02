@@ -7,9 +7,13 @@ node_modules/
 coverage/
 dist
 *.tsbuildinfo
+web/worker-configuration.d.ts
 
 # Cloudflare
 .wrangler/
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
 
 # Planning docs and third-party material
 AGENTS.md
@@ -23,3 +27,7 @@ IMPLEMENTATION_PLAN.md
 # Rust build output and testnet account keys written by the scripts
 target/
 accounts.*.json
+
+# Local testnet tooling and its output
+scripts/
+*.testnet.json

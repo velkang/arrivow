@@ -1,0 +1,2 @@
+# Optional 1Click partner key; do not expose to the browser.
+ONECLICK_API_KEY=
