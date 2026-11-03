@@ -216,6 +216,10 @@ export default function App() {
         : (upcoming(a) ? 1 : -1) *
           (Number(a.checkin_opens) - Number(b.checkin_opens)),
     );
+  const groups: [string, [string, Event][]][] = [
+    ["Upcoming", filtered.filter(([, e]) => preview || upcoming(e))],
+    ["Past events", filtered.filter(([, e]) => !preview && !upcoming(e))],
+  ];
   const shared =
     config && wallet ? { config, wallet, account, busy, run, fees } : undefined;
 
@@ -327,46 +331,52 @@ export default function App() {
           <Privacy />
         ) : (
           <>
-            <div className="browse-layout">
-              <aside className="browse-sidebar">
-                <h1>
-                  {isMine ? (
-                    <>
-                      YOUR
-                      <br />
-                      PEOPLE.
-                      <br />
-                      YOUR
-                      <br />
-                      PLANS.
-                    </>
-                  ) : (
-                    <>
-                      GOOD
-                      <br />
-                      PEOPLE.
-                      <br />
-                      REAL
-                      <br />
-                      PLANS.
-                    </>
-                  )}
-                </h1>
-                <p className="sidebar-intro">
-                  Commit a deposit.
-                  <br />
-                  Join the room.
-                  <br />
-                  Claim it back after the event.
+            <section className="hero">
+              <div>
+                <p className="eyebrow">Attendance deposits on NEAR</p>
+                <h1>{isMine ? "Your programme." : "Showing up pays."}</h1>
+                <p className="hero-lead">
+                  {isMine
+                    ? "Events you have registered for or are hosting, in one place."
+                    : "Commit a refundable deposit, check in at the door, and claim it back with a share of the no-show pool."}
                 </p>
-                <Field label="Find your next room">
-                  <input
-                    type="search"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Event, topic or location"
-                  />
-                </Field>
+                <div className="hero-actions">
+                  <a className="button primary" href="#/host">
+                    Host an event <Arrow />
+                  </a>
+                  <a className="button" href="#/privacy">
+                    How it works
+                  </a>
+                </div>
+              </div>
+              <ol className="steps" aria-label="How a deposit works">
+                <li>
+                  <strong>Commit</strong>
+                  <span>Reserve a place with a refundable NEAR deposit.</span>
+                </li>
+                <li>
+                  <strong>Check in</strong>
+                  <span>
+                    Show a one-minute QR ticket. The host confirms on NEAR.
+                  </span>
+                </li>
+                <li>
+                  <strong>Claim</strong>
+                  <span>
+                    Get your deposit back plus a share of no-show deposits.
+                  </span>
+                </li>
+              </ol>
+            </section>
+            <section className="directory" aria-label="Events">
+              <div className="toolbar">
+                <input
+                  type="search"
+                  aria-label="Find an event"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search events, topics or locations"
+                />
                 <div className="filters" aria-label="Event filters">
                   <button
                     aria-pressed={filter === "all"}
@@ -381,59 +391,57 @@ export default function App() {
                     Upcoming
                   </button>
                 </div>
-                <p className="small">
-                  An attendance deposit is a commitment to show up. It is
-                  separate from storage and network fees.
+                <button
+                  className="text-button"
+                  onClick={refresh}
+                  disabled={loading}
+                >
+                  Refresh
+                </button>
+              </div>
+              {preview && (
+                <p className="preview-note">
+                  Illustrative preview · No live contract configured. These
+                  events cannot accept deposits.
                 </p>
-                <p className="small">
-                  Payments via NEAR Intents.
-                  <br />
-                  Optional private introductions.
-                </p>
-              </aside>
-              <section className="event-directory" aria-label="Events">
-                <div className="directory-heading">
-                  <div>
-                    <h2>{isMine ? "Your programme" : "Find your people."}</h2>
-                    <p>Conversations, connections and what comes next.</p>
-                  </div>
-                  <button
-                    className="text-button"
-                    onClick={refresh}
-                    disabled={loading}
-                  >
-                    Refresh events
-                  </button>
-                </div>
-                {preview && (
-                  <p className="preview-note">
-                    Illustrative preview · No live contract configured. These
-                    events cannot accept deposits.
-                  </p>
-                )}
-                {isMine && !account ? (
-                  <Empty>
-                    Connect your NEAR wallet to see your registrations and
-                    hosted events.
-                  </Empty>
-                ) : !config || loading ? (
-                  <Empty>
-                    {config
-                      ? "Reading events from NEAR…"
-                      : "Connecting to the event service…"}
-                  </Empty>
-                ) : filtered.length === 0 ? (
-                  <Empty>
-                    No events found. Try another search or host the first event.
-                  </Empty>
-                ) : (
-                  filtered.map(([id, e]) => (
-                    <EventRow key={id} id={id} event={e} preview={preview} />
-                  ))
-                )}
-                <DepositExplainer share={50} />
-              </section>
-            </div>
+              )}
+              {isMine && !account ? (
+                <Empty>
+                  Connect your NEAR wallet to see your registrations and hosted
+                  events.
+                </Empty>
+              ) : !config || loading ? (
+                <Empty>
+                  {config
+                    ? "Reading events from NEAR…"
+                    : "Connecting to the event service…"}
+                </Empty>
+              ) : filtered.length === 0 ? (
+                <Empty>
+                  No events found. Try another search or host the first event.
+                </Empty>
+              ) : (
+                groups.map(
+                  ([heading, group]) =>
+                    group.length > 0 && (
+                      <div key={heading}>
+                        <h2 className="section-title">{heading}</h2>
+                        <div className="event-grid">
+                          {group.map(([id, e]) => (
+                            <EventCard
+                              key={id}
+                              id={id}
+                              event={e}
+                              preview={preview}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ),
+                )
+              )}
+              <DepositExplainer share={50} />
+            </section>
           </>
         )}
       </main>
@@ -478,7 +486,7 @@ function Privacy() {
   );
 }
 
-function EventRow({
+function EventCard({
   id,
   event: e,
   preview,
@@ -488,47 +496,55 @@ function EventRow({
   preview: boolean;
 }) {
   const time = new Date(Number(e.checkin_opens));
+  const open = preview || phase(e) === "Registration open";
   return (
-    <article className="event-row">
-      <div className="event-date">
-        <span>{time.toLocaleString(undefined, { month: "short" })}</span>
-        <strong>{time.getDate().toString().padStart(2, "0")}</strong>
-        <span>{time.toLocaleString(undefined, { weekday: "short" })}</span>
+    <a
+      className={`event-card${preview || upcoming(e) ? "" : " is-past"}`}
+      href={`#/events/${id}`}
+    >
+      <div className="card-band">
+        <div className="event-date">
+          <span>{time.toLocaleString(undefined, { weekday: "short" })}</span>
+          <strong>{time.getDate().toString().padStart(2, "0")}</strong>
+          <span>{time.toLocaleString(undefined, { month: "short" })}</span>
+        </div>
+        <div className="card-deposit">
+          <strong>{formatNear(e.deposit)} NEAR</strong>
+          <span>{e.bonus_bps / 100}% of no-shows to guests</span>
+        </div>
       </div>
-      <div className="event-copy">
+      <div className="card-body">
         <span className="event-status">
           {preview ? "Illustrative preview" : phase(e)}
         </span>
-        <h3>
-          <a href={`#/events/${id}`}>{e.title}</a>
-        </h3>
-        <p>
-          {e.description.length > 140
-            ? e.description.slice(0, 137) + "…"
-            : e.description}
-        </p>
-        <p className="small">
+        <h3>{e.title}</h3>
+        <p className="card-meta">
           {date(e.checkin_opens, { hour: "numeric", minute: "2-digit" })} –{" "}
           {date(e.checkin_closes, { hour: "numeric", minute: "2-digit" })} ·{" "}
           {e.location}
         </p>
+        <p className="card-description">{e.description}</p>
       </div>
-      <div className="event-terms">
-        <strong>{formatNear(e.deposit)} NEAR</strong>
-        <span>Attendance deposit</span>
-        <p>{e.bonus_bps / 100}% of no-show deposits go to guests.</p>
-      </div>
-      <div className="event-action">
-        <span>
-          {preview || phase(e) === "Registration open"
-            ? `${e.capacity - e.registered} of ${e.capacity} places left`
-            : `${e.attended} of ${e.registered} checked in`}
+      <div className="card-footer">
+        {open ? (
+          <div className="seats">
+            <span>
+              {e.capacity - e.registered} of {e.capacity} places left
+            </span>
+            <div className="seats-bar" aria-hidden="true">
+              <i style={{ width: `${(e.registered / e.capacity) * 100}%` }} />
+            </div>
+          </div>
+        ) : (
+          <span>
+            {e.attended} of {e.registered} checked in
+          </span>
+        )}
+        <span className="card-cta">
+          View <Arrow />
         </span>
-        <a className="text-link" href={`#/events/${id}`}>
-          View event <Arrow />
-        </a>
       </div>
-    </article>
+    </a>
   );
 }
 
