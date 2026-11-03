@@ -28,6 +28,16 @@ const date = (ms: string, options?: Intl.DateTimeFormatOptions) =>
     undefined,
     options ?? { dateStyle: "medium", timeStyle: "short" },
   );
+const upcoming = (e: Event) =>
+  e.status === "Open" && Number(e.checkin_closes) > Date.now();
+const phase = (e: Event, now = Date.now()) =>
+  e.status !== "Open"
+    ? e.status
+    : now >= Number(e.checkin_closes)
+      ? "Ready to settle"
+      : now >= Number(e.registration_closes)
+        ? "Registration closed"
+        : "Registration open";
 function Arrow() {
   return (
     <svg
@@ -188,15 +198,24 @@ export default function App() {
   const list = preview ? previewEvents() : events;
   const selected = route.match(/^\/events\/([^/]+)(?:\/(manage))?$/);
   const isMine = route === "/mine";
-  const filtered = list.filter(
-    ([id, e]) =>
-      (!isMine || mine.has(id) || e.organizer === account) &&
-      `${e.title} ${e.location} ${e.description}`
-        .toLowerCase()
-        .includes(search.toLowerCase()) &&
-      (filter !== "upcoming" ||
-        (e.status === "Open" && Number(e.checkin_closes) > Date.now())),
-  );
+  // Upcoming events soonest first, then past events most recent first.
+  const filtered = list
+    .filter(
+      ([id, e]) =>
+        (!isMine || mine.has(id) || e.organizer === account) &&
+        `${e.title} ${e.location} ${e.description}`
+          .toLowerCase()
+          .includes(search.toLowerCase()) &&
+        (filter !== "upcoming" || upcoming(e)),
+    )
+    .sort(([, a], [, b]) =>
+      upcoming(a) !== upcoming(b)
+        ? upcoming(a)
+          ? -1
+          : 1
+        : (upcoming(a) ? 1 : -1) *
+          (Number(a.checkin_opens) - Number(b.checkin_opens)),
+    );
   const shared =
     config && wallet ? { config, wallet, account, busy, run, fees } : undefined;
 
@@ -478,17 +497,7 @@ function EventRow({
       </div>
       <div className="event-copy">
         <span className="event-status">
-          {preview
-            ? "Illustrative preview"
-            : e.status === "Settled"
-              ? "Settled"
-              : e.status === "Cancelled"
-                ? "Cancelled"
-                : Date.now() >= Number(e.checkin_closes)
-                  ? "Ready to settle"
-                  : Date.now() >= Number(e.registration_closes)
-                    ? "Registration closed"
-                    : "Registration open"}
+          {preview ? "Illustrative preview" : phase(e)}
         </span>
         <h3>
           <a href={`#/events/${id}`}>{e.title}</a>
@@ -511,7 +520,9 @@ function EventRow({
       </div>
       <div className="event-action">
         <span>
-          {e.capacity - e.registered} of {e.capacity} places left
+          {preview || phase(e) === "Registration open"
+            ? `${e.capacity - e.registered} of ${e.capacity} places left`
+            : `${e.attended} of ${e.registered} checked in`}
         </span>
         <a className="text-link" href={`#/events/${id}`}>
           View event <Arrow />
@@ -612,6 +623,11 @@ function CreateEvent(s: Shared) {
       {!s.config.configured && (
         <p className="preview-note">
           Configure an event contract to publish. This form is a preview.
+        </p>
+      )}
+      {s.config.configured && !s.account && (
+        <p className="preview-note">
+          Connect your NEAR wallet to publish. You can fill in the form first.
         </p>
       )}
       <form onSubmit={submit} className="event-form">
@@ -786,6 +802,9 @@ function EventDetail(
   const canRegister =
     open && tick < Number(e.registration_closes) && e.registered < e.capacity;
   const total = (BigInt(e.deposit) + BigInt(s.fees.registration)).toString();
+  const status = phase(e, tick);
+  const left = e.capacity - e.registered;
+  const offer = canRegister && !r?.active;
   return (
     <section className="detail-page">
       <a className="back" href="#/">
@@ -798,7 +817,7 @@ function EventDetail(
       )}
       <div className="detail-heading">
         <div>
-          <span className="event-status">{e.status}</span>
+          <span className="event-status">{status}</span>
           <h1>{e.title}</h1>
           <p>
             {e.location} · {date(e.checkin_opens)}
@@ -807,7 +826,11 @@ function EventDetail(
         <div className="detail-deposit">
           <strong>{formatNear(e.deposit)} NEAR</strong>
           <span>Attendance deposit</span>
-          <span>{e.capacity - e.registered} places left</span>
+          {status === "Registration open" && (
+            <span>
+              {left} {left === 1 ? "place" : "places"} left
+            </span>
+          )}
         </div>
       </div>
       <div className="tabs" role="navigation" aria-label="Event sections">
@@ -854,30 +877,44 @@ function EventDetail(
           </div>
           <aside className="reservation">
             <h2>
-              {r?.active ? "Your place is reserved." : "Make the commitment."}
+              {r?.active && open
+                ? "Your place is reserved."
+                : status === "Settled"
+                  ? "This event has settled."
+                  : status === "Cancelled"
+                    ? "This event was cancelled."
+                    : offer
+                      ? "Make the commitment."
+                      : status === "Registration open"
+                        ? "This event is full."
+                        : "Registration has closed."}
             </h2>
-            {r?.checked_in && (
+            {r?.checked_in && open && (
               <p className="positive">
                 You’re checked in. Claim your payout after settlement.
               </p>
             )}
-            <dl>
-              <dt>Refundable deposit</dt>
-              <dd>{formatNear(e.deposit)} NEAR</dd>
-              <dt>Non-refundable storage fee</dt>
-              <dd>{formatNear(s.fees.registration)} NEAR</dd>
-              <dt>Total to register</dt>
-              <dd>{formatNear(total)} NEAR + gas</dd>
-            </dl>
-            <p>
-              {e.bonus_bps / 100}% of no-show deposits fund guest bonuses. Your
-              full deposit is claimable after settlement if you check in.
-            </p>
+            {offer && (
+              <>
+                <dl>
+                  <dt>Refundable deposit</dt>
+                  <dd>{formatNear(e.deposit)} NEAR</dd>
+                  <dt>Non-refundable storage fee</dt>
+                  <dd>{formatNear(s.fees.registration)} NEAR</dd>
+                  <dt>Total to register</dt>
+                  <dd>{formatNear(total)} NEAR + gas</dd>
+                </dl>
+                <p>
+                  {e.bonus_bps / 100}% of no-show deposits fund guest bonuses.
+                  Your full deposit is claimable after settlement if you check
+                  in.
+                </p>
+              </>
+            )}
             {!s.account ? (
-              <p>Connect your NEAR wallet to register.</p>
+              offer && <p>Connect your NEAR wallet to register.</p>
             ) : (
-              !r?.active &&
-              canRegister && (
+              offer && (
                 <button
                   className="primary"
                   disabled={
@@ -1218,6 +1255,8 @@ function Networking(s: Shared & { id: string; active: boolean }) {
     contact: "",
     consent: false,
   });
+  // Raw text so spaces survive typing; split into interests only on save.
+  const [interests, setInterests] = useState("");
   const [matches, setMatches] = useState<Match[]>([]);
   const load = async () => {
     await authenticate(s.wallet, s.account);
@@ -1225,7 +1264,10 @@ function Networking(s: Shared & { id: string; active: boolean }) {
       api<{ profile: Profile | null }>(`/events/${s.id}/profile`),
       api<{ matches: Match[] }>(`/events/${s.id}/matches`),
     ]);
-    if (p.profile) setProfile(p.profile);
+    if (p.profile) {
+      setProfile(p.profile);
+      setInterests(p.profile.interests.join(", "));
+    }
     setMatches(m.matches);
   };
   if (!s.active)
@@ -1255,7 +1297,13 @@ function Networking(s: Shared & { id: string; active: boolean }) {
     e.preventDefault();
     s.run(async () => {
       await authenticate(s.wallet, s.account);
-      await api(`/events/${s.id}/profile`, profile);
+      await api(`/events/${s.id}/profile`, {
+        ...profile,
+        interests: interests
+          .split(",")
+          .map((x) => x.trim())
+          .filter(Boolean),
+      });
       setMatches([]);
     }, "Profile saved. Editing it revokes any previous introductions.");
   };
@@ -1284,13 +1332,8 @@ function Networking(s: Shared & { id: string; active: boolean }) {
           <Field label="Shared interests · comma separated">
             <input
               required
-              value={profile.interests.join(", ")}
-              onChange={(e) =>
-                setProfile({
-                  ...profile,
-                  interests: e.target.value.split(",").map((x) => x.trim()),
-                })
-              }
+              value={interests}
+              onChange={(e) => setInterests(e.target.value)}
               placeholder="Design, Rust, climate"
             />
           </Field>
@@ -1350,6 +1393,7 @@ function Networking(s: Shared & { id: string; active: boolean }) {
                     contact: "",
                     consent: false,
                   });
+                  setInterests("");
                   setMatches([]);
                 }, "Your profile and introductions were removed.")
               }
