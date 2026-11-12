@@ -35,9 +35,13 @@ const phase = (e: Event, now = Date.now()) =>
     ? e.status
     : now >= Number(e.checkin_closes)
       ? "Ready to settle"
-      : now >= Number(e.registration_closes)
-        ? "Registration closed"
-        : "Registration open";
+      : now >= Number(e.checkin_opens)
+        ? "Check-in open"
+        : now >= Number(e.registration_closes)
+          ? "Registration closed"
+          : e.registered >= e.capacity
+            ? "Full"
+            : "Registration open";
 function Arrow() {
   return (
     <svg
@@ -258,7 +262,13 @@ export default function App() {
           >
             {config?.network ?? "Connecting"}
           </span>
+          {account && (
+            <span className="account" title={account}>
+              {account}
+            </span>
+          )}
           <button
+            className={account ? "disconnect" : undefined}
             disabled={!wallet || busy}
             onClick={() =>
               run(async () => {
@@ -273,9 +283,7 @@ export default function App() {
               })
             }
           >
-            {account
-              ? `${account.length > 22 ? account.slice(0, 18) + "…" : account} · Disconnect`
-              : "Connect wallet"}
+            {account ? "Disconnect" : "Connect wallet"}
           </button>
         </div>
       </header>
@@ -331,7 +339,7 @@ export default function App() {
           <Privacy />
         ) : (
           <>
-            <section className="hero">
+            <section className={`hero${isMine ? " compact" : ""}`}>
               <div>
                 <p className="eyebrow">Attendance deposits on NEAR</p>
                 <h1>{isMine ? "Your programme." : "Showing up pays."}</h1>
@@ -340,33 +348,37 @@ export default function App() {
                     ? "Events you have registered for or are hosting, in one place."
                     : "Commit a refundable deposit, check in at the door, and claim it back with a share of the no-show pool."}
                 </p>
-                <div className="hero-actions">
-                  <a className="button primary" href="#/host">
-                    Host an event <Arrow />
-                  </a>
-                  <a className="button" href="#/privacy">
-                    How it works
-                  </a>
-                </div>
+                {!isMine && (
+                  <div className="hero-actions">
+                    <a className="button primary" href="#/host">
+                      Host an event <Arrow />
+                    </a>
+                    <a className="button" href="#/privacy">
+                      How it works
+                    </a>
+                  </div>
+                )}
               </div>
-              <ol className="steps" aria-label="How a deposit works">
-                <li>
-                  <strong>Commit</strong>
-                  <span>Reserve a place with a refundable NEAR deposit.</span>
-                </li>
-                <li>
-                  <strong>Check in</strong>
-                  <span>
-                    Show a one-minute QR ticket. The host confirms on NEAR.
-                  </span>
-                </li>
-                <li>
-                  <strong>Claim</strong>
-                  <span>
-                    Get your deposit back plus a share of no-show deposits.
-                  </span>
-                </li>
-              </ol>
+              {!isMine && (
+                <ol className="steps" aria-label="How a deposit works">
+                  <li>
+                    <strong>Commit</strong>
+                    <span>Reserve a place with a refundable NEAR deposit.</span>
+                  </li>
+                  <li>
+                    <strong>Check in</strong>
+                    <span>
+                      Show a one-minute QR ticket. The host confirms on NEAR.
+                    </span>
+                  </li>
+                  <li>
+                    <strong>Claim</strong>
+                    <span>
+                      Get your deposit back plus a share of no-show deposits.
+                    </span>
+                  </li>
+                </ol>
+              )}
             </section>
             <section className="directory" aria-label="Events">
               <div className="toolbar">
@@ -496,7 +508,8 @@ function EventCard({
   preview: boolean;
 }) {
   const time = new Date(Number(e.checkin_opens));
-  const open = preview || phase(e) === "Registration open";
+  const status = preview ? "Illustrative preview" : phase(e);
+  const open = preview || status === "Registration open" || status === "Full";
   return (
     <a
       className={`event-card${preview || upcoming(e) ? "" : " is-past"}`}
@@ -514,9 +527,7 @@ function EventCard({
         </div>
       </div>
       <div className="card-body">
-        <span className="event-status">
-          {preview ? "Illustrative preview" : phase(e)}
-        </span>
+        <span className="event-status">{status}</span>
         <h3>{e.title}</h3>
         <p className="card-meta">
           {date(e.checkin_opens, { hour: "numeric", minute: "2-digit" })} –{" "}
@@ -537,7 +548,9 @@ function EventCard({
           </div>
         ) : (
           <span>
-            {e.attended} of {e.registered} checked in
+            {status === "Cancelled"
+              ? "Deposits refundable"
+              : `${e.attended} of ${e.registered} checked in`}
           </span>
         )}
         <span className="card-cta">
@@ -852,7 +865,9 @@ function EventDetail(
       <div className="tabs" role="navigation" aria-label="Event sections">
         {[
           "details",
-          ...(r?.active ? ["ticket"] : []),
+          ...(r?.active && open && tick < Number(e.checkin_closes)
+            ? ["ticket"]
+            : []),
           ...(r ? ["networking"] : []),
           ...(host ? ["manage"] : []),
         ].map((t) => (
@@ -893,21 +908,50 @@ function EventDetail(
           </div>
           <aside className="reservation">
             <h2>
-              {r?.active && open
-                ? "Your place is reserved."
-                : status === "Settled"
-                  ? "This event has settled."
-                  : status === "Cancelled"
-                    ? "This event was cancelled."
-                    : offer
-                      ? "Make the commitment."
-                      : status === "Registration open"
-                        ? "This event is full."
-                        : "Registration has closed."}
+              {status === "Settled"
+                ? "This event has settled."
+                : status === "Cancelled"
+                  ? "This event was cancelled."
+                  : status === "Ready to settle"
+                    ? "Ready to settle."
+                    : r?.active && status === "Check-in open"
+                      ? r.checked_in
+                        ? "You’re checked in."
+                        : "Check-in is open."
+                      : r?.active
+                        ? "Your place is reserved."
+                        : offer
+                          ? "Make the commitment."
+                          : status === "Full"
+                            ? "This event is full."
+                            : "Registration has closed."}
             </h2>
             {r?.checked_in && open && (
               <p className="positive">
-                You’re checked in. Claim your payout after settlement.
+                Attendance confirmed. Claim your payout after settlement.
+              </p>
+            )}
+            {r?.active && !r.checked_in && status === "Check-in open" && (
+              <>
+                <p>Show your ticket to the organizer at the door.</p>
+                <button className="primary" onClick={() => setTab("ticket")}>
+                  Show my ticket <Arrow />
+                </button>
+              </>
+            )}
+            {r?.active &&
+              ["Registration open", "Registration closed", "Full"].includes(
+                status,
+              ) && (
+                <p className="small">
+                  Check-in opens {date(e.checkin_opens)}. Your ticket will be
+                  under My ticket.
+                </p>
+              )}
+            {status === "Ready to settle" && (
+              <p>
+                Check-in has closed. Anyone can settle the event to fix the
+                payouts.
               </p>
             )}
             {offer && (
@@ -927,25 +971,23 @@ function EventDetail(
                 </p>
               </>
             )}
-            {!s.account ? (
-              offer && <p>Connect your NEAR wallet to register.</p>
-            ) : (
-              offer && (
-                <button
-                  className="primary"
-                  disabled={
-                    s.busy ||
-                    !live ||
-                    Boolean(
-                      r && (BigInt(r.credit) > 0n || BigInt(r.pending) > 0n),
-                    )
-                  }
-                  onClick={() => action("register", {}, total)}
-                >
-                  Reserve a place <Arrow />
-                </button>
-              )
-            )}
+            {!s.account
+              ? offer && <p>Connect your NEAR wallet to register.</p>
+              : offer && (
+                  <button
+                    className="primary"
+                    disabled={
+                      s.busy ||
+                      !live ||
+                      Boolean(
+                        r && (BigInt(r.credit) > 0n || BigInt(r.pending) > 0n),
+                      )
+                    }
+                    onClick={() => action("register", {}, total)}
+                  >
+                    Reserve a place <Arrow />
+                  </button>
+                )}
             {r?.active && open && tick < Number(e.registration_closes) && (
               <button
                 disabled={s.busy || !live}
@@ -955,13 +997,22 @@ function EventDetail(
               </button>
             )}
             {BigInt(claimable) > 0n && (
-              <button
-                className="primary"
-                disabled={s.busy || !live}
-                onClick={() => action("claim")}
-              >
-                Claim {formatNear(claimable)} NEAR
-              </button>
+              <>
+                <button
+                  className="primary"
+                  disabled={s.busy || !live}
+                  onClick={() => action("claim")}
+                >
+                  Claim {formatNear(claimable)} NEAR
+                </button>
+                <p className="small">
+                  {status === "Cancelled" || BigInt(r?.credit ?? "0") > 0n
+                    ? "Refund of your attendance deposit."
+                    : BigInt(claimable) > BigInt(e.deposit)
+                      ? `Your ${formatNear(e.deposit)} NEAR deposit plus a ${formatNear((BigInt(claimable) - BigInt(e.deposit)).toString())} NEAR bonus.`
+                      : "Your attendance deposit."}
+                </p>
+              </>
             )}
             {r && BigInt(r.pending) > 0n && (
               <p role="status">
@@ -971,6 +1022,7 @@ function EventDetail(
             )}
             {open && tick >= Number(e.checkin_closes) && (
               <button
+                className="primary"
                 disabled={s.busy || !live || !s.account}
                 onClick={() => action("finalize")}
               >
@@ -979,6 +1031,7 @@ function EventDetail(
             )}
             {host && BigInt(e.host_claimable) > 0n && (
               <button
+                className="primary"
                 disabled={s.busy || !live}
                 onClick={() => action("claim_host")}
               >
@@ -991,7 +1044,7 @@ function EventDetail(
             <button className="text-button" onClick={() => s.run(load)}>
               Refresh contract state
             </button>
-            {live && s.account && <Funding {...s} required={total} />}
+            {live && s.account && offer && <Funding {...s} required={total} />}
           </aside>
         </div>
       )}
@@ -1177,39 +1230,57 @@ function Organizer(
         <p>
           {s.event.attended} checked in · {s.event.registered} registrations
         </p>
-        <button onClick={() => setScanning(!scanning)} disabled={s.busy}>
-          {scanning ? "Stop camera" : "Scan a ticket"}
-        </button>
-        {scanning && (
-          <video ref={video} className="scanner" autoPlay playsInline muted />
-        )}
-        <Field label="Or paste the guest’s ticket code">
-          <input
-            value={token}
-            onChange={(e) => setToken(e.target.value)}
-            placeholder="gather-ticket:v1:…"
-          />
-        </Field>
-        <button disabled={s.busy || !token} onClick={redeem}>
-          Verify ticket
-        </button>
-        {identified && (
-          <div className="verified-guest">
-            <p>
-              Verified guest: <strong>{identified}</strong>
-            </p>
-            <button
-              className="primary"
-              disabled={s.busy}
-              onClick={() => s.action("check_in", { account_id: identified })}
-            >
-              Confirm check-in on NEAR
+        {phase(s.event) !== "Check-in open" ? (
+          <p className="small">
+            {Date.now() < Number(s.event.checkin_opens)
+              ? `Ticket scanning opens with check-in at ${date(s.event.checkin_opens)}.`
+              : "Check-in is closed, so tickets can no longer be scanned."}
+          </p>
+        ) : (
+          <>
+            <button onClick={() => setScanning(!scanning)} disabled={s.busy}>
+              {scanning ? "Stop camera" : "Scan a ticket"}
             </button>
-            <p className="small">
-              If the wallet action fails, retry this confirmation without
-              scanning again.
-            </p>
-          </div>
+            {scanning && (
+              <video
+                ref={video}
+                className="scanner"
+                autoPlay
+                playsInline
+                muted
+              />
+            )}
+            <Field label="Or paste the guest’s ticket code">
+              <input
+                value={token}
+                onChange={(e) => setToken(e.target.value)}
+                placeholder="gather-ticket:v1:…"
+              />
+            </Field>
+            <button disabled={s.busy || !token} onClick={redeem}>
+              Verify ticket
+            </button>
+            {identified && (
+              <div className="verified-guest">
+                <p>
+                  Verified guest: <strong>{identified}</strong>
+                </p>
+                <button
+                  className="primary"
+                  disabled={s.busy}
+                  onClick={() =>
+                    s.action("check_in", { account_id: identified })
+                  }
+                >
+                  Confirm check-in on NEAR
+                </button>
+                <p className="small">
+                  If the wallet action fails, retry this confirmation without
+                  scanning again.
+                </p>
+              </div>
+            )}
+          </>
         )}
         {s.event.status === "Open" &&
           Date.now() < Number(s.event.checkin_opens) && (
@@ -1253,7 +1324,9 @@ function Organizer(
             .map(([account, r]) => (
               <li key={account}>
                 <span>{account}</span>
-                <strong>{r.checked_in ? "Checked in" : "Expected"}</strong>
+                <strong className={r.checked_in ? "positive" : undefined}>
+                  {r.checked_in ? "Checked in" : "Expected"}
+                </strong>
               </li>
             ))}
         </ul>

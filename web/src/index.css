@@ -305,12 +305,30 @@ dd {
   align-items: center;
   gap: 14px;
 }
+.wallet-controls {
+  min-width: 0;
+}
 .wallet-controls button {
   border-color: var(--accent);
   color: var(--accent);
   background: transparent;
-  max-width: 280px;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+}
+.wallet-controls button.disconnect {
+  border-color: var(--rule);
+  color: var(--muted);
+}
+.wallet-controls button.disconnect:hover {
+  color: var(--ink);
+}
+.account {
+  min-width: 0;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  font-weight: 550;
 }
 .network {
   display: inline-flex;
@@ -365,6 +383,13 @@ main > * {
   width: min(1200px, 100% - 40px);
   margin-inline: auto;
 }
+/* Status messages stay in view while the user acts lower on the page. */
+.message,
+.activity {
+  position: sticky;
+  top: 88px;
+  z-index: 5;
+}
 .message {
   margin-top: 20px;
   padding: 14px 18px;
@@ -386,7 +411,11 @@ main > * {
 }
 .activity {
   margin-top: 18px;
+  padding: 12px 18px;
+  border-radius: 10px;
+  background: var(--raised-2);
   color: var(--accent);
+  max-width: none;
 }
 .empty {
   padding: 36px 0;
@@ -424,6 +453,16 @@ main > * {
   font-weight: 700;
   line-height: 0.95;
   margin-bottom: 20px;
+}
+.hero.compact {
+  grid-template-columns: 1fr;
+  padding: 40px 0 24px;
+}
+.hero.compact h1 {
+  font-size: clamp(2.8rem, 5vw, 4rem);
+}
+.hero.compact .hero-lead {
+  margin-bottom: 0;
 }
 .hero-lead {
   font-size: 1.1rem;
@@ -913,8 +952,11 @@ main > .form-page {
 }
 .guest-list strong {
   white-space: nowrap;
-  color: var(--accent);
+  color: var(--muted);
   font-weight: 450;
+}
+.guest-list strong.positive {
+  color: #c0dab4;
 }
 .privacy-note {
   background: var(--raised-2);
@@ -973,6 +1015,10 @@ main > .form-page {
   }
 }
 @media (max-width: 800px) {
+  .message,
+  .activity {
+    top: 12px;
+  }
   .site-header {
     position: static;
     flex-wrap: wrap;
@@ -991,8 +1037,11 @@ main > .form-page {
     padding: 4px 8px;
   }
   .wallet-controls button {
-    max-width: 180px;
     padding: 8px 12px;
+    font-size: 0.8rem;
+  }
+  .account {
+    max-width: 140px;
     font-size: 0.8rem;
   }
   .toolbar {
@@ -1061,9 +1110,16 @@ main > .form-page {
   .wallet-controls {
     gap: 8px;
   }
+  .wallet-controls:has(.account) {
+    width: 100%;
+    margin-left: 0;
+  }
   .wallet-controls button {
-    max-width: 150px;
     font-size: 0.75rem;
+  }
+  .account {
+    flex: 1;
+    max-width: none;
   }
   .site-header nav a {
     font-size: 0.82rem;
