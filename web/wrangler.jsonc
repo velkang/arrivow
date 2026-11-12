@@ -14,7 +14,7 @@
   "vars": {
     "NEAR_NETWORK": "testnet",
     "NEAR_RPC": "https://test.rpc.fastnear.com",
-    "EVENT_CONTRACT": "emvy2mtz9.faintprint-funder-7k2q.testnet"
+    "EVENT_CONTRACT": "emwe02ki0.faintprint-funder-7k2q.testnet"
   },
   "d1_databases": [
     {

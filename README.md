@@ -4,7 +4,7 @@
 
 Guests commit a refundable NEAR deposit. After the organizer checks them in and the event settles, they claim their deposit plus a published share of no-show deposits. The organizer receives the remainder. Optional private introductions help guests find people with shared interests.
 
-[Open the testnet app](https://gather-events.velikanghost.workers.dev) · [Inspect the event contract](https://testnet.nearblocks.io/address/emvy2mtz9.faintprint-funder-7k2q.testnet)
+[Open the testnet app](https://gather-events.velikanghost.workers.dev) · [Inspect the event contract](https://testnet.nearblocks.io/address/emwe02ki0.faintprint-funder-7k2q.testnet)
 
 This is a hackathon prototype, not an audited production escrow. It supports **200 active registrations per event**, including conference sessions and side events rather than an entire large conference.
 
