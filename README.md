@@ -78,11 +78,11 @@ In mainnet mode, Arrivow previews a quote before creating a deposit address. The
 - **Attendance is host-attested.** QR tickets identify paid registrations and prevent accidental/replayed scans; they cannot prove physical presence or stop a dishonest organizer from misreporting attendance.
 - **Public:** deposits, wallet accounts, event terms and attendance are public on NEAR. Arrivow does not promise private event participation.
 - **Offchain:** networking profiles live in D1. The application service can read them. Profiles stay within the application service; no external inference provider receives them. Contact details are revealed only after mutual acceptance.
-- **Introductions:** model IDs are scoped to one request. Returned IDs are validated against the shortlist. Displayed reasons are generated from approved shared tags, preventing free-form model output from disclosing private goals. Editing or deleting a profile revokes its introductions.
+- **Introductions:** the Worker ranks other active guests of the same event by how many approved interests they share, and suggests up to three per request. The displayed reason lists only the shared interests, never the free-text goals. Editing or deleting a profile revokes its introductions.
 - **Retention:** profiles and introductions become inaccessible seven days after the check-in window closes. Manual removal is available earlier, including after a guest cancels. A native Durable Object alarm removes expired rows hourly without consuming a cron slot; it persists retries if the database is unavailable.
 - **Authentication:** NEP-413 challenges bind account, origin, network and contract, expire after five minutes, and are consumed once. Signatures must belong to an onchain full-access key. Sessions are hashed in D1 and use HttpOnly, SameSite cookies; HTTPS cookies are Secure. Sessions expire after an hour.
 - **Recovery:** a consumed QR ticket can be refreshed if a host's wallet transaction fails. The host can retry the verified attendance confirmation. Pending payouts are callback-protected and restore credits on failure.
-- **Operations:** API bodies, profiles, cookies, contacts, secrets and model responses are not logged. Platform observability is enabled without custom sensitive logging. Limit and timeout failures return actionable errors.
+- **Operations:** API bodies, profiles, cookies, contacts and secrets are not logged. Platform observability is enabled without custom sensitive logging. Limit and timeout failures return actionable errors.
 
 ## Cloudflare deployment
 
@@ -101,10 +101,15 @@ The account's five free cron slots were occupied, so scheduled deletion uses the
 
 ## Hackathon submission
 
-Suggested tracks: **Real-World Money** and **Open Innovation**. The money and networking flows are independently usable; only the contract rules and host-attested attendance determine payouts.
+Built for NEAR HACKATHON (1–14 November 2026). All code was written after the hackathon was announced on 19 October 2026. The repository's first commit is dated 3 November 2026, so its history has no earlier baseline. That commit (tag `court-checkpoint`, `8016bff`) holds an earlier idea from the hackathon period, a staked juror court, which Arrivow replaced in `5cfbc42`. It is kept only as history.
 
-For a short demo, show immutable event terms, a registered guest's ticket, host check-in, the settled 0.125-NEAR attendee and 0.05-NEAR host amounts, cancellation recovery, and consent-based introductions. State the distinction between the real testnet escrow flow and mainnet-only cross-chain funding.
+### Built with
 
-Publish this repository and record the working flow before posting the public X demo. Repository publication, the demo post, the final description, team details and prize wallet still require the team's submission choices. No X post or final hackathon form has been submitted by this implementation.
+- **Contract:** Rust, near-sdk 5.29.1, cargo-near.
+- **Web app:** React 19, Vite, Tailwind CSS 4, NEAR Connect (`@hot-labs/near-connect`) for wallets and NEP-413 sign-in, `qrcode` and `@zxing/browser` for QR tickets, Fontsource fonts.
+- **Service:** a Cloudflare Worker with D1 and a Durable Object. Wallet signatures are verified with the Web Crypto Ed25519 API.
+- **Payments:** the NEAR Intents 1Click API (mainnet only; see above).
+- **Tests:** near-sdk unit tests and Vitest.
+- No templates or starter projects were used. The code was written with AI assistance (Claude Code) and reviewed, tested and deployed by the author.
 
-The previous Court source is preserved in the local Git tag `court-checkpoint` (commit `c8f992d`). It is not kept as a second active implementation.
+Licensed under MIT; see [LICENSE](LICENSE).
