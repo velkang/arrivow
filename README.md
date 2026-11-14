@@ -80,21 +80,6 @@ In mainnet mode, Arrivow previews a quote before creating a deposit address. The
 - **Recovery:** a consumed QR ticket can be refreshed if a host's wallet transaction fails. The host can retry the verified attendance confirmation. Pending payouts are callback-protected and restore credits on failure.
 - **Operations:** API bodies, profiles, cookies, contacts and secrets are not logged. Platform observability is enabled without custom sensitive logging. Limit and timeout failures return actionable errors.
 
-## Cloudflare deployment
-
-`web/wrangler.jsonc` binds an isolated testnet D1 database and a separate `mainnet` environment. Generate bindings after configuration changes with `pnpm types`.
-
-```sh
-pnpm web:build
-pnpm exec wrangler d1 migrations apply DB --remote -c web/wrangler.jsonc
-pnpm exec wrangler deploy --dry-run -c web/wrangler.jsonc --env ''
-pnpm exec wrangler deploy -c web/wrangler.jsonc --env ''
-```
-
-Paste credentials only into the CLI secret prompt, never source, logs, screenshots, or public repository fields. An optional `ONECLICK_API_KEY` can be stored as a Worker secret; unauthenticated quotes work with the applicable 1Click fee schedule.
-
-The account's five free cron slots were occupied, so scheduled deletion uses the approved SQLite-backed `RetentionAlarm` Durable Object instead. It starts when the first authentication challenge is issued, runs initially after one minute, and then hourly. It stores no profile copies. No existing application's schedule is changed and no plan upgrade is needed for the prototype's free-tier usage.
-
 ## Hackathon submission
 
 Built for NEAR HACKATHON (1–14 November 2026). All code was written after the hackathon was announced on 19 October 2026. The repository's first commit is dated 3 November 2026, so its history has no earlier baseline. That commit (tag `court-checkpoint`, `8016bff`) holds an earlier idea from the hackathon period, a staked juror court, which Arrivow replaced in `5cfbc42`. It is kept only as history.
@@ -106,6 +91,5 @@ Built for NEAR HACKATHON (1–14 November 2026). All code was written after the 
 - **Service:** a Cloudflare Worker with D1 and a Durable Object. Wallet signatures are verified with the Web Crypto Ed25519 API.
 - **Payments:** the NEAR Intents 1Click API (mainnet only; see above).
 - **Tests:** near-sdk unit tests and Vitest.
-- No templates or starter projects were used. The code was written with AI assistance (Claude Code) and reviewed, tested and deployed by the author.
 
 Licensed under MIT; see [LICENSE](LICENSE).
