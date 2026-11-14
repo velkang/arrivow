@@ -31,3 +31,4 @@ accounts.*.json
 # Local testnet tooling and its output
 scripts/
 *.testnet.json
+arrivow-demo.mp4

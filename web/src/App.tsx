@@ -1074,7 +1074,7 @@ function Ticket(s: Shared & { id: string; checkedIn: boolean }) {
         {},
       );
       const url = await QRCode.toDataURL(
-        `gather-ticket:v1:${s.id}:${t.token}`,
+        `arrivow-ticket:v1:${s.id}:${t.token}`,
         { width: 320, margin: 3, errorCorrectionLevel: "M" },
       );
       setTicket(t);
@@ -1117,7 +1117,7 @@ function Ticket(s: Shared & { id: string; checkedIn: boolean }) {
             </p>
             <details>
               <summary>Show code for manual scanning</summary>
-              <code>{`gather-ticket:v1:${s.id}:${ticket.token}`}</code>
+              <code>{`arrivow-ticket:v1:${s.id}:${ticket.token}`}</code>
             </details>
           </>
         ) : (
@@ -1213,7 +1213,7 @@ function Organizer(
     s.run(async () => {
       const match = token
         .trim()
-        .match(/^gather-ticket:v1:(\d+):([a-f0-9]{64})$/);
+        .match(/^arrivow-ticket:v1:(\d+):([a-f0-9]{64})$/);
       if (!match || match[1] !== s.id)
         throw new Error("Paste a ticket for this event.");
       await authenticate(s.wallet, s.account);
@@ -1254,7 +1254,7 @@ function Organizer(
               <input
                 value={token}
                 onChange={(e) => setToken(e.target.value)}
-                placeholder="gather-ticket:v1:…"
+                placeholder="arrivow-ticket:v1:…"
               />
             </Field>
             <button disabled={s.busy || !token} onClick={redeem}>

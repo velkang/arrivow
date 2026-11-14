@@ -4,17 +4,15 @@
 
 Guests commit a refundable NEAR deposit. After the organizer checks them in and the event settles, they claim their deposit plus a published share of no-show deposits. The organizer receives the remainder. Optional private introductions help guests find people with shared interests.
 
-[Open the testnet app](https://gather-events.velikanghost.workers.dev) · [Inspect the event contract](https://testnet.nearblocks.io/address/emwe02ki0.faintprint-funder-7k2q.testnet)
-
-This is a hackathon prototype, not an audited production escrow. It supports **200 active registrations per event**, including conference sessions and side events rather than an entire large conference.
+[Open the testnet app](https://arrivow.velkan.xyz) · [Inspect the event contract](https://testnet.nearblocks.io/address/emwe02ki0.faintprint-funder-7k2q.testnet)
 
 ## NEAR tools and their jobs
 
-| Tool | What Arrivow uses it for |
-|---|---|
+| Tool                           | What Arrivow uses it for                                                                     |
+| ------------------------------ | -------------------------------------------------------------------------------------------- |
 | NEAR smart contract / near-sdk | Deposits, immutable event terms, attendance, refunds, bonus distribution, recoverable claims |
-| NEAR Connect | Wallet connection, transaction confirmation, NEP-413 sign-in |
-| NEAR Intents / 1Click | Cross-chain wallet funding; an explicit subsequent transaction registers the attendee |
+| NEAR Connect                   | Wallet connection, transaction confirmation, NEP-413 sign-in                                 |
+| NEAR Intents / 1Click          | Cross-chain wallet funding; an explicit subsequent transaction registers the attendee        |
 
 The frontend is React + Vite. A Cloudflare Worker and D1 handle signed sessions, expiring tickets and offchain networking data. The Worker does not control escrowed funds.
 
@@ -69,8 +67,6 @@ pnpm contract:build
 
 1Click has **no testnet**. Testnet deployments reject all payment routes; use testnet NEAR directly. A live Base USDC → NEAR **dry quote** has been verified without creating a funding address or transferring funds. A funded mainnet swap has **not** been performed.
 
-The separate `mainnet` Wrangler environment has its own database binding and an empty contract ID. Before enabling it, deploy/review a mainnet contract, create a separate mainnet D1 database, and explicitly authorize a small real-value validation. No mainnet deployment or funded transaction is included in this prototype.
-
 In mainnet mode, Arrivow previews a quote before creating a deposit address. The quote names the asset, source chain, exact amount, recipient, refund address, fees and deadline. Save/reload recovery retains the funding address and its status. Sending funds to that address tops up the connected NEAR wallet; it does not reserve an event place. Seats can fill while a swap is pending, and funds then remain in the attendee's wallet. Cancellation payouts remain native NEAR, not the asset used for funding.
 
 ## Privacy and trust boundaries
@@ -86,7 +82,7 @@ In mainnet mode, Arrivow previews a quote before creating a deposit address. The
 
 ## Cloudflare deployment
 
-`web/wrangler.jsonc` binds the isolated `gather-testnet` database and a separate `mainnet` environment. Generate bindings after configuration changes with `pnpm types`.
+`web/wrangler.jsonc` binds an isolated testnet D1 database and a separate `mainnet` environment. Generate bindings after configuration changes with `pnpm types`.
 
 ```sh
 pnpm web:build
